@@ -5,21 +5,21 @@ permalink: /guides/dev-getting-started/
 :page-layout: guide
 :page-duration: 75 minutes
 :page-description: Workshop content for developers and solution architects getting started with Kabanero
-:page-tags: ['Appsody', 'Nodejs', 'Express', 'Collection']
+:page-tags: ['Appsody', 'Nodejs', 'Express']
 :page-title: Getting Started With Kabanero Development
 :linkattrs:
 
 :kabanero-collection: v0.2.0
 :include-codewind: true
 
-= Getting Started With Kabanero Development
+= Getting Started With Development for Project Kabanero
 
 include::whatis.adoc[]
 
 == What you will learn
 
 This tutorial is split into two parts, giving you an introduction to 
-the Kabanero developer experience, as well as an introduction to the 
+the developer experience, as well as an introduction to the 
 solution architecture portion of its unified experince.
 
 In the developer experience, you will be creating and deploying a 
@@ -31,17 +31,18 @@ application template and stack, observing how those changes reflect
 automatically into applications created in the first portion.
 
 At the end of this tutorial, you should have a good understanding of the
-Kabanero developer experience through the use of the https://appsody.dev[Appsody]
+developer experience through the use of the https://appsody.dev[Appsody]
 command-line interface, productive code iterations through the usage of 
 https://www.eclipse.org/codewind/[Codewind], as well as basic notions
-of how to play the role of a solution architect creating Kabanero collections
+of how to play the role of a solution architect creating application stacks
 for your organizaton.
 
 Note that the tutorial is based on a Node.js application using the 
-https://expressjs.com/[Express] framework, but Kabanero bundles support for other 
-programming languages and frameworks, and also supports the modular addition of
-support for other languages and frameworks through the creation of 
-https://appsody.dev/docs/stacks/stacks-overview[Appsody stacks].
+https://expressjs.com/[Express] framework, but the applications stacks
+also include support for other programming languages and frameworks, and 
+the platform supports the modular addition of support for other languages 
+and frameworks through the creation of 
+https://appsody.dev/docs/stacks/stacks-overview[application stacks].
 
 
 include::prerequisites-raw.adoc[]
@@ -54,5 +55,5 @@ Let’s now take a look at Codewind.
 include::codewind.adoc[]
 endif::[]
 
-include::collections.adoc[]
+include::stacks.adoc[]
 

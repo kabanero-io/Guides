@@ -13,7 +13,7 @@ Windows] page.
 Appsody relies on the mounted hosted volumes to expedite the startup of
 applications under development, so that it is imperative that Docker
 Desktop be configured to access the shared drive containing the user’s
-home directory and that the user associated with the shared drive have
+home directory and that the user associated with the shared drive has
 the Windows "Full Control"' permission on mounted directories.
 
 In most cases, it is sufficient to configure Docker with the same user
@@ -22,7 +22,7 @@ as the user developing applications with Appsody.
 However, for users of Windows 10 Enterprise secured with Azure Active
 Directory (AAD), the AAD user does not reside in the local host and may
 not be accepted in the "Shared Drives" tab of the Docker Desktop
-Settings page, specially if the organization has configured AAD to only
+Settings page, especially if the organization has configured AAD to only
 issue PIN codes instead of user passwords.
 
 == Workaround for Windows 10 Enterprise secured with Azure Active Directory
@@ -76,7 +76,7 @@ prioritized minimal impact for the workaround.
 
 If you want to revert the permissions later, execute a
 `+icacls ... /remove+` command on all affected directories. For
-instance, for the specific instructions in this page, you would execute
+instance, for the specific instructions on this page, you would execute
 the following commands:
 
 ....

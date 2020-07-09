@@ -1,10 +1,5 @@
-== What is Kabanero
+== What is the Kabanero project
 
-Kabanero is an open source project that brings together other open source 
-technologies into a framework for developing and deploying modern cloud-native 
-applications.
+The Kabanero project is an open-source project that brings together other open source  technologies into a framework for developing and deploying modern cloud-native applications.
 
-That experience is based on project templates built atop curated runtime stacks,
-which allows the rapid creation of new cloud-native applications that can be easily 
-deployed to a Kubernetes environment without the need for specialized container or 
-Kubernetes skills.
+That experience is based on project templates built atop curated application stacks, which allows the rapid creation of new cloud-native applications that can be deployed to a Kubernetes environment without the need for specialized container or Kubernetes skills.

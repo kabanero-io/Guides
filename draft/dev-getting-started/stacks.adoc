@@ -1,0 +1,861 @@
+== Working with an Application Stack
+
+An application stack includes everything you need to create a microservice in a single container image. Stacks are developed by application architects to match their organizational and product requirements and work as the basis for applications created by application developers.
+
+A stack is defined by a combination of a container image, runtime setup, and application templates, as illustrated with examples in Table 1.
+
+.Layers in an application stack
+[width="80%",cols="5,^8,^8",options="header"]
+|==========
+| Layer | Content | Examples
+| 4| application template | Node.js Express handler for "/" RESTful endpoint 
+| 3| runtime setup | - Startup options for Node runtime
+
+- Logging level for Pino Logger
+
+-  Automatic execution of testcases during build
+| 2| runtime framework |  - Node.js Express version 4.17
+
+- Express Pino Logger version 4.0.0
+| 1 (base) | runtime image  | node:slim-12
+|==========
+
+
+Typical use cases for creating a new stack or customizing an existing stack would be requirements for supporting:
+
+* a different programming language
+* different runtime frameworks for that programming language
+* different settings for the runtime framework
+* different base images for the runtime or even something as simple as additional application templates to ensure new applications follow specific programming conventions.
+
+Application stacks follow the development process described in the https://appsody.dev/docs/stacks/create["Creating a Stack"] section of the Appsody project website, which will be referenced throughout this section. 
+
+
+=== Stacks
+
+An https://appsody.dev/docs/stacks/stacks-overview[application stack] contains at least one pre-built container image, with the resulting runtime being tailored to the target runtime. An application architect may specify different tunning parameters for a single image, such as dynamic code reloading for development environments, or provide distinct images for different purposes, such as an image stripped out of shell support for production environments.
+
+You can study the internal file structure of a stack in more detail https://appsody.dev/docs/stacks/stack-structure[here], but the relevant files for this tutorial will be examined in the next sections are transcribed here for convenience:
+
+
+[source, role="no_copy"]
+....
+my-nodejs-express-stack
+├── README.md               # describes the contents of the stack and how it should be used
+├── stack.yaml              # defines the different attributes of the stack and which template the stack should use by default
+├── image/
+|   ├── config/
+|   |   └── app-deploy.yaml # configuration file for deploying an Appsody project using the Appsody Operator
+|   ├── project/
+|   |   ├── [files that provide the technology components of the stack]
+|   |   └── Dockerfile      # defines the final image that will be created by the appsody build command
+│   ├── Dockerfile-stack    # defines the foundation stack image, and a set of environment variables for the local development cycle
+|   └── LICENSE
+└── templates/
+    ├── my-template-1/
+    |       └── [example files as a starter for the application, e.g. "hello world"]
+    └── my-template-2/
+            └── [example files as a starter for a more complex application]
+....
+
+
+
+==== The Dockerfile-stack file
+
+This file contains the instructions for `appsody run` and `appsody test`, which are used during local development operations. You will notice how it includes debugging instructions and expose ports that you would normally not use in a production environment:
+
+[source,dockerfile,role="no_copy"]
+....
+FROM appsody/nodejs:0.3
+
+ENV APPSODY_PROJECT_DIR=/project
+ENV APPSODY_MOUNTS=/:/project/user-app
+ENV APPSODY_DEPS=/project/user-app/node_modules
+
+ENV APPSODY_WATCH_DIR=/project/user-app
+ENV APPSODY_WATCH_IGNORE_DIR=/project/user-app/node_modules
+ENV APPSODY_WATCH_REGEX="^.*.js$"
+
+ENV APPSODY_PREP="npm install --prefix user-app"
+
+ENV APPSODY_RUN="npm start"
+ENV APPSODY_RUN_ON_CHANGE="npm start"
+ENV APPSODY_RUN_KILL=true
+
+ENV APPSODY_DEBUG="npm run debug"
+ENV APPSODY_DEBUG_ON_CHANGE="npm run debug"
+ENV APPSODY_DEBUG_KILL=true
+
+ENV APPSODY_TEST="npm test && npm test --prefix user-app"
+ENV APPSODY_TEST_ON_CHANGE=""
+ENV APPSODY_TEST_KILL=false
+
+COPY ./LICENSE /licenses/
+COPY ./project /project
+COPY ./config /config
+WORKDIR /project
+RUN npm install
+
+ENV PORT=3000
+ENV NODE_PATH=/project/user-app/node_modules
+
+EXPOSE 3000
+EXPOSE 9229
+....
+
+Notice how the `project` directory is set as the working directory for the application, and it maps directly to the `images/project` directory in the application stack directory. When you examine the `package.json` file in that directory you will find this declaration block for the `start` script of the application
+
+[source,json,role="no_copy"]
+....
+  "scripts": {
+    "debug": "node --inspect=0.0.0.0 server.js",
+    "start": "node server.js",    <<<<<< server.js contains the application starting code
+    "test": "mocha"
+  },
+....
+
+Upon closer inspection you find the `image/project/server.js` file, which contains the base of a Node.js Express application:
+
+[source,javascript, role="no_copy"]
+....
+const express = require('express');
+const health = require('@cloudnative/health-connect');
+const fs = require('fs');
+const http = require('http');
+
+const app = express();
+const server = http.createServer(app)
+
+// Code sensitive to production vs development mode.
+// See: http://expressjs.com/en/4x/api.html#app.settings.table
+const PRODUCTION = app.get('env') === 'production';
+if (!PRODUCTION) {
+  require('appmetrics-dash').monitor({server, app});
+}
+const pino = require('pino')({
+  level: PRODUCTION ? 'info' : 'debug',
+});
+app.use(require('express-pino-logger')({logger: pino}));
+...
+....
+
+At this point, you have a good idea of how the project directory is structured and where to make customizations such as adding new dependencies to the stack and modifying the basic behavior of the Express application.
+
+
+=== Workshop custom stack
+
+You are going to use a custom stack created for this workshop, following the same process described in the https://kabanero.io/guides/working-with-stacks/[Working with application stacks] guide. The upcoming sections cover more details of the stack development process. For now, you will create the custom stack to be used in this section of the workshop.
+
+Open a new terminal for the development of the custom stack. Keep this terminal in mind as you will be requested to come back to it multiple times throughout the next sections. It is a good idea to create a parent directory for all new directories to be created in this tutorial so that you don't lose track of where you create all directories.
+
+Clone the Node.js stack to get started with the customization, entering the following commands in the terminal.
+
+[source, role="no_copy"]
+....
+appsody stack create my-nodejs-express-stack --copy incubator/nodejs-express
+cd my-nodejs-express-stack
+....
+
+
+=== Building the custom stack
+
+The commands for developing custom stacks are bundled under the `appsody stack` command:
+
+[source, role='command']
+```
+appsody stack --help
+```
+
+[source, role="no_copy"]
+....
+Tools to help create and test Appsody stacks
+
+Usage:
+  appsody stack [command]
+
+Available Commands:
+  lint        Lint your stack to verify that it conforms to the standard of an Appsody stack
+  package     Package a stack in the local Appsody environment
+  validate    Run validation tests of a stack in the local Appsody environment
+....
+
+Enter the following command to generate the local development images for the stack:
+
+[source, role='command']
+....
+appsody stack package
+....
+
+
+Observe the presence of the new dev.local repository, by entering the following command:
+
+[source, role='command']
+```
+appsody repo list
+```
+
+This command should produce output similar to this:
+
+[source, role="no_copy"]
+----
+dev.local           	file:///Users/nastacio/.appsody/stacks/dev.local/dev.local-index.yaml                             
+experimental        	https://github.com/appsody/stacks/releases/latest/download/experimental-index.yaml                
+incubator           	https://github.com/appsody/stacks/releases/latest/download/incubator-index.yaml                   
+----
+
+You can inspect the stacks available in the new repository, entering the following command:
+
+[source, role='command']
+```
+appsody list dev.local
+```
+
+You should now see an entry for a stack called
+`+my-nodejs-express-stack+` from the `+dev.local+` repository.
+
+[source, role="no_copy"]
+--
+REPO     	ID                     	VERSION  	TEMPLATES        	DESCRIPTION                      
+dev.local	my-nodejs-express-stack	0.4.6    	scaffold, *simple	Express web framework for Node.js
+--
+
+Validate the stack entering the following command:
+
+[source, role='command']
+```
+appsody stack validate
+```
+
+
+Open a new terminal for creating a new application based on this stack. Keep this terminal open and separate from the one where you are entering commands for the application stack since you will be switching back and forth a number of times.
+
+Enter the following commands in that new terminal:
+
+[source,role='command']
+....
+mkdir my-nodejs-app
+cd my-nodejs-app
+appsody init dev.local/my-nodejs-express-stack
+appsody run
+....
+
+From a different terminal, enter the following command to validate that the new application works correctly:
+
+[source,role='command']
+....
+curl -v localhost:3000
+....
+
+The command should produce the following output:
+
+[source, role="no_copy"]
+....
+*   Trying ::1...
+* TCP_NODELAY set
+* Connected to localhost (::1) port 3000 (#0)
+> GET / HTTP/1.1
+> Host: localhost:3000
+> User-Agent: curl/7.64.1
+> Accept: */*
+> 
+< HTTP/1.1 200 OK
+< X-Powered-By: Express
+< Content-Type: text/html; charset=utf-8
+< Content-Length: 19
+< ETag: W/"13-0ErcqB22cNteJ3vXrBgUhlCj8os"
+< Date: Sun, 22 Mar 2020 23:48:11 GMT
+< Connection: keep-alive
+< 
+* Connection #0 to host localhost left intact
+Hello from Appsody!* Closing connection 0
+....
+
+You are now ready to start customizing this local stack and creating sample applications 
+to test its functionality.
+
+Terminate the application with the combination of the `Ctrl+C` keys
+
+
+=== Stack Scenario 1: Stack versioning
+
+Appsody supports https://semver.org/[semantic versioning] during development of stacks and 
+applications, which specifies a 3-digit scheme for software versions, namely:
+
+* major version
+* minor version
+* patch
+
+In this exercise, you will examine how Appsody generates container images that support semantic versioning of the application stacks and how application developers can control their application policy for automatically adopting new versions. 
+
+==== The application architect view
+
+The stack version is defined in the `version` field of the `stack.yaml` file in the root directory of the stack directory.
+
+Enter the following commandto see the images created by Appsody in the previous `appsody stack package` invocation:
+
+[source, role="command"]
+docker images dev.local/appsody/my-nodejs-express-stack
+
+You should see output similar to this:
+
+[source, role="no_-_copy"]
+REPOSITORY                                  TAG                 IMAGE ID            CREATED             SIZE
+dev.local/appsody/my-nodejs-express-stack   0                   b888a9f19178        21 minutes ago      982MB
+dev.local/appsody/my-nodejs-express-stack   0.4                 b888a9f19178        21 minutes ago      982MB
+dev.local/appsody/my-nodejs-express-stack   0.4.5               b888a9f19178        21 minutes ago      982MB
+dev.local/appsody/my-nodejs-express-stack   latest              b888a9f19178        21 minutes ago      982MB
+
+Notice the multiple images generated by Appsody, which allows the co-existence of multiple images that are suitable for each possible level of version adoption. 
+
+Now modify the `version` field in the `stack.yaml` file to increase the patch version (3rd digit) by one. At the time of writing of this tutorial the current stack version is 0.4.5, so the updated version should be `0.4.6`. Adjust the new version number accordingly if a newer version of the stack has been made available and these instructions are behind by the current version of the Node.js Express stack.
+
+Package the stack once again by entering the following command from the root directory of the stack (`my-nodejs-express-stack`):
+
+[source, role='command']
+....
+appsody stack package
+....
+
+Now inspect the images resulting from the all invocations of `appsody stack package` so far:
+
+[source, role="command"]
+docker images dev.local/appsody/my-nodejs-express-stack
+
+This command should produce updated content similar to the one below:
+
+[source, role="no_-_copy"]
+REPOSITORY                                  TAG                 IMAGE ID            CREATED             SIZE
+dev.local/appsody/my-nodejs-express-stack   0                   e1a70766d0a5        4 seconds ago       982MB
+dev.local/appsody/my-nodejs-express-stack   0.4                 e1a70766d0a5        4 seconds ago       982MB
+dev.local/appsody/my-nodejs-express-stack   0.4.6               e1a70766d0a5        4 seconds ago       982MB
+dev.local/appsody/my-nodejs-express-stack   latest              e1a70766d0a5        4 seconds ago       982MB
+dev.local/appsody/my-nodejs-express-stack   0.4.5               820aeaa301a4        18 hours ago        982MB
+
+Notice that besides generating a new image for the latest patch, Appsody also tags that new image as the latest global version (`TAG` column has the value `latest`), as well as the new major (`TAG` column has the value `0`) and new minor (`TAG` column has the value `0.4`) versions for that new version of the stack.
+
+
+
+==== Application developer
+
+As an application developer, the version of the application stack is defined in a file named `.appsody-config.yaml`, located at the root directory of the application.
+
+Locate the root directory (`my-nodejs-app`) for the application and inspect the content of the file:
+
+....
+project-name: my-nodejs-app
+stack: dev.local/appsody/my-nodejs-express-stack:0.4
+....
+
+You can see that, by default, `appsody init` configures new applications to automatically adopt the latest patch of the application stack minor version at the time the application was created. With that knowledge in mind, an application developer can choose to modify that reference to be more or less specific about automatically adopting newer (or older) versions of the stack. For instance, choosing `0` instead of `0.4` as the version of the stack in that file would instruct Appsody to use the latest minor version of the major version `0`.
+
+
+=== Stack Scenario 2: Add the Helmet traffic handler to the stack
+
+For this scenario, we will modify the stack to include the popular HTTP header security module https://www.npmjs.com/package/helmet[Helmet], which will change the headers we see returned by the application. With this modification, all applications built using the modified stack will have Helmet automatically enabled.
+
+Go back to the cloned stack directory (`my-nodejs-express-stack`) and add the Helmet dependency to the `dependencies` section of the `image/project/package.json` file:
+
+[source,json]
+.package.json
+----
+{
+  "name": "nodejs-express",
+  "version": "0.4.5",
+  "dependencies": {
+    ...,
+    "helmet": "^3.21.0" 
+  },
+  ...
+}
+----
+
+And now make two modifications to the `image/project/server.js` file, adding the import of the Helmet package and instructing the Express `app` to use it.
+
+[source,js,role='command']
+.app.js
+....
+const express = require('express');
+const helmet = require('helmet');   // Change #1
+const health = require('@cloudnative/health-connect');
+const fs = require('fs');
+const http = require('http');
+
+const app = express();
+app.use(helmet());    // Change #2
+....
+
+
+Now package the stack again, entering the following command:
+
+[source, role='command']
+....
+appsody stack package
+....
+
+
+Now verify the changes from the perspective of the application developer. Go back to the terminal where you created the application and enter the following command:
+
+[source, role='command']
+```
+appsody run
+```
+
+Now verify the new application behavior entering following command from a different terminal:
+
+
+[source, role='command']
+```
+curl -v localhost:3000
+```
+
+The output should reveal the new `X-` security-related headers in the responses from the application:
+
+[source,role="no_copy"]
+*   Trying ::1...
+* TCP_NODELAY set
+* Connected to localhost (::1) port 3000 (#0)
+> GET / HTTP/1.1
+> Host: localhost:3000
+> User-Agent: curl/7.64.1
+> Accept: */*
+> 
+< HTTP/1.1 200 OK
+< X-DNS-Prefetch-Control: off
+< X-Frame-Options: SAMEORIGIN
+< Strict-Transport-Security: max-age=15552000; includeSubDomains
+< X-Download-Options: noopen
+< X-Content-Type-Options: nosniff
+< X-XSS-Protection: 1; mode=block
+< X-Powered-By: Express
+< Content-Type: text/html; charset=utf-8
+< Content-Length: 19
+< ETag: W/"13-0ErcqB22cNteJ3vXrBgUhlCj8os"
+< Date: Mon, 23 Mar 2020 00:17:13 GMT
+< Connection: keep-alive
+< 
+* Connection #0 to host localhost left intact
+Hello from Appsody!* Closing connection 0
+....
+
+
+End the application with `+Ctrl+C+`.
+
+
+=== Stack Scenario 3: Custom application template
+
+A stack contains at least one application template, which is the set of application files placed in the application directory during the initial creation of a project. The default template for a stack is defined in the `default-template` field of the `stack.yaml` file in the stack directory. That default template is used by `+appsody init+` when the user does not specify a template name.
+
+For instance, for the nodejs-express stack, that default template is defined as `simple` in the `default-template` field of the `stack.yaml` file.
+
+[source,yaml,role="no_copy"]
+....
+name: Node.js Express
+description: Express web framework for Node.js
+license: Apache-2.0
+language: nodejs
+...
+default-template: simple  <<<<<
+....
+
+That template is located in the `templates/simple` directory of the stack directory.
+
+An application architect can create new templates to reflect different starting points for application developers, such as a default template for a simple stateless application or a more complex template with a starter code for connecting to a remote database.
+
+In this scenario, you will inspect an alternative template with a PostgreSQL database connection endpoint, then create and test an application starter using that template.
+
+You first need to create the alternative template, which will be based on the `simple` template:
+
+Ensure the terminal you are using for the application stack customization is set to the stack root directory (`my-nodejs-express-stack`), then copy the `templates/simple` directory into a new `templates/psqldb` directory:
+
+[source, role='command']
+```
+cp -rf templates/simple templates/psqldb
+```
+
+Note: On the Windows platform, use 
+
+[source, role='command']
+```
+copy /s templates/simple templates/psqldb
+```
+
+The next step is to modify the "package.json" file for the template to include the PostgreSQL dependency, which is in the new "psqldb" directory created in the previous step:
+
+
+
+Insert the new dependency for https://www.npmjs.com/package/pg-promise[pg-promise package] in the `templates/psqldb/package.json` file, inside the "devDependencies" block, as follows:
+
+.package.json
+[source, json, linenums, role='code_column hide_tags=copyright,fallback,fallbackMethod']
+----
+include::stacks/my-nodejs-express-stack/templates/psqldb/package.json[]
+----
+
+The next step is to show how the template code could have a small sample of database connectivity. Notice we are hardcoding the database connectivity parameters in the interest of simplicity, but in a real application, these values should be provided through an external mechanism, such as Docker environment variables (`appsody run --docker-options="-e ..."`) or, later in production, through secrets bound to the Kubernetes deployment or pod.
+
+Modify the `app.js` code inside the newly created "psqldb" directory to look like the content below:
+
+.app.js
+[source, javascript, linenums, role='code_column hide_tags=copyright,fallback,fallbackMethod']
+----
+include::stacks/my-nodejs-express-stack/templates/psqldb/app.js[]
+----
+
+You are now ready to re-build our application stack that includes the new application template:
+
+[source, role='command']
+```
+appsody stack package
+```
+
+You can now see the new template next to the other templates in the nodejs-express stack:
+
+[source, role='command']
+```
+appsody list dev.local
+```
+
+Which should show the following output, where you notice the new "psqldb" template
+in the "TEMPLATES" column:
+
+[source, role="no_copy"]
+....
+REPO     	ID                     	VERSION  	TEMPLATES                	DESCRIPTION                      
+dev.local	my-nodejs-express-stack	0.4.6    	psqldb, scaffold, *simple	Express web framework for Node.js
+....
+
+Before testing a new application using the new `psqldb` template, you will need a local PostgreSQL database. You will use a custom docker network for both the PostgreSQL database container and the application container, which makes it easier for the application container to locate the database container by hostname instead of IP address.
+
+[source, role='command']
+```
+docker network create workshop_nw
+
+docker run --rm -it --name workshop-postgres --hostname psqldb --network workshop_nw -e POSTGRES_PASSWORD=mysecretpassword -d postgres 
+```
+
+Ensure the database container is running by entering the following commands:
+
+[source, role='command']
+....
+docker ps  -f name=postgres
+docker logs workshop-postgres --tail 8
+....
+
+[source, role="no_copy"]
+....
+CONTAINER ID        IMAGE               COMMAND                  CREATED             STATUS              PORTS               NAMES
+37b5aa8517b7        postgres            "docker-entrypoint.s…"   42 seconds ago      Up 40 seconds       5432/tcp            workshop-postgres
+
+PostgreSQL init process complete; ready for start up.
+
+2020-03-23 14:54:38.876 UTC [1] LOG:  starting PostgreSQL 12.2 (Debian 12.2-2.pgdg100+1) on x86_64-pc-linux-gnu, compiled by gcc (Debian 8.3.0-6) 8.3.0, 64-bit
+2020-03-23 14:54:38.877 UTC [1] LOG:  listening on IPv4 address "0.0.0.0", port 5432
+2020-03-23 14:54:38.877 UTC [1] LOG:  listening on IPv6 address "::", port 5432
+2020-03-23 14:54:38.886 UTC [1] LOG:  listening on Unix socket "/var/run/postgresql/.s.PGSQL.5432"
+2020-03-23 14:54:38.902 UTC [56] LOG:  database system was shut down at 2020-03-23 14:54:38 UTC
+2020-03-23 14:54:38.908 UTC [1] LOG:  database system is ready to accept connections
+....
+
+Now can create a new application, using the template containing the database resource. Open a new terminal and switch to a parent directory of your choice.
+
+
+[source, role='command']
+....
+mkdir nodejs-db
+cd nodejs-db
+
+appsody init dev.local/my-nodejs-express-stack psqldb
+
+appsody run --network workshop_nw
+....
+
+Wait for the application to complete its startup cycle and verify that the new endpoint is available, by entering the following command from another terminal:
+
+[source, role='command']
+....
+curl http://localhost:3000/database
+....
+
+You should see output similar to the one below:
+
+[source, role="no_copy"]
+....
+PostgreSQL 12.2 (Debian 12.2-2.pgdg100+1) on x86_64-pc-linux-gnu, compiled by gcc (Debian 8.3.0-6) 8.3.0, 64-bit
+....
+
+End the application with `+Ctrl+C+` and remove the Docker resources created for this scenario by entering the following commands:
+
+[source, role='command']
+....
+docker stop workshop-postgres
+docker network rm workshop_nw
+....
+
+==== Build/CD
+
+An application stack also specifies how applications should be built and
+packaged, encoding conventions about compilation aspects, packaging
+tooling, unit test enforcement, static code analysis, and many others. A
+full Kabanero toolchain is implemented as a sequence of steps that
+happen both inside and outside the container boundaries, and this
+workshop covers the steps that happen within the container boundaries, such as the compilation and packaging of binaries.
+
+This portion of the instructions is executed directly when the developer invokes `+appsody build+` or implicitly, when the developer invokes `+appsody deploy+` and there are outstanding code changes since the last build.
+
+=== Stack Scenario 4: Add static code verification to build process
+
+In this scenario, the entire team discussed ways of making code reviews more efficient and agreed on ensuring minimal coding guidelines for all applications based on that stack.
+
+After considering multiple tools, the team agreed on using https://www.npmjs.com/package/eslint[eslint], and the application architect can make that modification to the stack
+image itself.
+
+For simplicity, we will use the default eslint rules, so that we need to add an appropriate eslint configuration file in the image and invoke  `eslint` in the application code.
+
+Return to the terminal where you are making customizations to the application stack, then create a new file named `.eslintrc.js` in the `image/project` directory, with the following contents:
+
+[source,javascript,role="copy"]
+.eslintrc.js
+....
+module.exports = {
+    "env": {
+        "browser": false,
+        "commonjs": true,
+        "es6": true
+    },
+    "extends": "eslint:recommended",
+    "globals": {
+        "Atomics": "readonly",
+        "SharedArrayBuffer": "readonly"
+    },
+    "parserOptions": {
+        "ecmaVersion": 2018
+    },
+    "rules": {
+        "no-empty": "warn"
+    },
+    "ignorePatterns": ["test/"]
+}
+....
+
+And now  introduce the lines for the installation and invocation of eslint in the `Dockerfile` file inside the `image/project` directory. The lines should be introduced immediately after the line containing the `WORKDIR /project` instruction in the `Dockerfile`:
+
+[source, role="no_copy"]
+.Dockerfile
+----
+...
+WORKDIR /project
+# ESLint installation and invocation
+RUN npm install eslint \
+    && ./node_modules/.bin/eslint /project/user-app
+....
+----
+
+With the change in place, you can rebuild the stack again.
+
+
+[source, role='command']
+....
+appsody stack package 
+....
+
+With the code verification in place, we are almost ready to see the new code 
+verification step in action when an application developer executes `+appsody build+`:
+
+First create a source file inside the root directory of the `my-nodejs-app` application, with a violation to the default rule against empty blocks, named app-rule-violation.js
+
+[source, js]
+.app-rule-violation.js
+....
+var a=1
+if (a) {
+}
+....
+
+
+Now build the application, entering the following command in the terminal where you created the first test application (`my-node-js`):
+
+
+[source, role='command']
+....
+appsody build
+....
+
+As the build progresses, you will eventually see the following log snippet pass by, indicating the new checks during build time: 
+
+[source, role="no_copy"]
+....
+...
+[Docker] /project/user-app/app-rule-violation.js
+[Docker]   2:8  warning  Empty block statement  no-empty
+[Docker] 
+[Docker] ✖ 1 problem (0 errors, 1 warning)
+[Docker] 
+...
+....
+
+
+=== Stack Scenario 5 (optional): Release your stack to other application developers
+
+This scenario is optional due to its external dependencies on an external Docker registry and the associated network demand for pushing the stack image. 
+
+The first step is to decide the new version number for the stack. As mentioned earlier, Appsody not only follows the https://semver.org/[semantic versioning] scheme but also prescribes it for application architects authoring application stacks.
+
+The previous scenarios only introduced new features that are backward-compatible with existing applications, so you should increase the second digit of the `version` field in `stack.yaml` by 1 and reset the third digit to 0, indicating that this is the first release of the minor version.
+
+For instance, if the current version was `0.4.6`, you should set the version to `0.5.0` in the `stack.yaml` file. After you make the modification, go to the terminal being used to customize the stack and enter the following commands:
+
+[source, role='command']
+....
+appsody stack package
+appsody list dev.local
+....
+
+Ensure that the last command shows the expected version for the stack, entering the following command in a terminal:
+
+[source, role='command']
+....
+appsody list dev.local
+....
+
+The command should produce output similar to the one below:
+
+[source, role="no_copy"]
+....
+REPO     	ID                     	VERSION  	TEMPLATES                	DESCRIPTION                      
+dev.local	my-nodejs-express-stack	0.5.0    	psqldb, scaffold, *simple	Express web framework for Node.js
+....
+
+Follow along the "Releasing your stack" instructions in the https://kabanero.io/guides/working-with-stacks/[Working with application stacks] guide to publish your new application stack for reuse by other application developers.
+
+As an example of the commands used to publish the stack to a public Docker Hub, and assuming you have the default namespace (named after your username) in a Docker.io account, and that you have logged in to Docker from the command-line with that same account, you could enter the following command, while replacing `${my_docker_hub_account}` with the actual name of your Docker.io account:
+
+[source, role='command']
+....
+export my_docker_hub_account=#your-account-docker-account-name#
+appsody stack package --image-namespace ${my_docker_hub_account} --image-registry docker.io
+....
+
+Inspect the generated content by entering the following command:
+
+[source, role='command']
+....
+docker images my-org/*
+....
+
+Which should produce the following content:
+
+[source, role="no_copy"]
+....
+REPOSITORY                       TAG                 IMAGE ID            CREATED             SIZE
+my_docker_hub_account/my-nodejs-express-stack   0                   ba3b7ceca85c        58 seconds ago      982MB
+my_docker_hub_account/my-nodejs-express-stack   0.5                 ba3b7ceca85c        58 seconds ago      982MB
+my_docker_hub_account/my-nodejs-express-stack   0.5.0               ba3b7ceca85c        58 seconds ago      982MB
+my_docker_hub_account/my-nodejs-express-stack   latest              ba3b7ceca85c        58 seconds ago      982MB
+....
+
+Enter the following commands to push all images to the Docker hub namespace, once again replacing `${my_docker_hub_account}` with the actual name of your Docker.io account:
+
+[source, role='command']
+....
+docker push ${my_docker_hub_account}/my-nodejs-express-stack:0
+docker push ${my_docker_hub_account}/my-nodejs-express-stack:0.5
+docker push ${my_docker_hub_account}/my-nodejs-express-stack:0.5.0
+docker push ${my_docker_hub_account}/my-nodejs-express-stack:latest
+....
+
+It is time to create the repository files in a remote URL. For this example, assuming you are using GitHub as the release mechanism, create a new repository named `my-org-repository` in your account and then https://help.github.com/en/github/administering-a-repository/managing-releases-in-a-repository[create a new release] tagged as `latest` for that repository. Now enter the following commands to generate the repository index files for the release:
+
+[source, role='command']
+....
+export my_github_account=#your-github-account-name-where-you-created-a-new-draft-release#
+
+appsody stack add-to-repo my-org-repository --release-url https://github.com/${my_github_account}/my-org-repository/releases/download/latest/
+....
+
+Upload the following files in the `.appsody/stacks/dev.local` directory inside your home directory to the GitHub release:
+
+[source, role="no_copy"]
+....
+/dev.local
+├── my-nodejs-express-stack.v0.5.0.source.tar.gz
+├── my-nodejs-express-stack.v0.5.0.templates.psqldb.tar.gz
+├── my-nodejs-express-stack.v0.5.0.templates.scaffold.tar.gz
+├── my-nodejs-express-stack.v0.5.0.templates.simple.tar.gz
+├── my-org-repository-index.json
+└── my-org-repository-index.yaml
+....
+
+You are finally ready to validate the newly release stack, entering the following command in a terminal, registering the remote repository in your local Appsody installation:
+
+[source, role='command']
+....
+appsody repo add my-org https://github.com/${my_github_account}/my-org-repository/releases/download/latest/my-org-repository-index.yaml
+
+appsody list my-org
+....
+
+You should see output similar to the one below:
+
+[source, role="no_copy"]
+....
+REPO  	ID                     	VERSION  	TEMPLATES                	DESCRIPTION                      
+my-org	my-nodejs-express-stack	0.5.0    	psqldb, scaffold, *simple	Express web framework for Node.js
+....
+
+And finally, open a new terminal, then create a test a new application based on the remote stack:
+
+[source, role='command']
+....
+mkdir new-nodejs-app-from-remote
+cd new-nodejs-app-from-remote
+appsody init my-org/my-nodejs-express-stack
+appsody run
+....
+
+Enter the `curl` verification command from a separate terminal
+
+[source, role='command']
+....
+curl -v localhost:3000
+....
+
+Which should produce the expected output:
+
+[source, role="no_copy"]
+....
+*   Trying ::1...
+* TCP_NODELAY set
+* Connected to localhost (::1) port 3000 (#0)
+> GET / HTTP/1.1
+> Host: localhost:3000
+> User-Agent: curl/7.64.1
+> Accept: */*
+> 
+< HTTP/1.1 200 OK
+< X-DNS-Prefetch-Control: off
+< X-Frame-Options: SAMEORIGIN
+< Strict-Transport-Security: max-age=15552000; includeSubDomains
+< X-Download-Options: noopen
+< X-Content-Type-Options: nosniff
+< X-XSS-Protection: 1; mode=block
+< X-Powered-By: Express
+< Content-Type: text/html; charset=utf-8
+< Content-Length: 19
+< ETag: W/"13-0ErcqB22cNteJ3vXrBgUhlCj8os"
+< Date: Mon, 23 Mar 2020 22:13:15 GMT
+< Connection: keep-alive
+< 
+* Connection #0 to host localhost left intact
+Hello from Appsody!* Closing connection 0
+
+
+
+=== Further reading: Development versus production behavior
+
+The previous scenarios showed relatively simple changes, but application stacks can accommodate more sophisticated behaviors, where the container image is setup with additional debugging capabilities during development and stripped out of those capabilities during production.
+
+You can read more about deciding on whether to create new stacks or modify existing stacks in https://developer.ibm.com/articles/customizing-appsody/[this article]. If you decide to create a new stack, https://developer.ibm.com/tutorials/create-appsody-stack/[this tutorial] 
+has excellent guidance for that activity.
+
+This https://github.com/appsody/stacks/pull/56[Git pull request] shows how that type of different behavior can be achieved, by exploring the usage of https://appsody.dev/docs/stacks/stack-structure[different modes of a stack]: "initialization", "rapid local development", and "build and
+deploy".

@@ -1,21 +1,25 @@
+= Getting Started With Development for Project Kabanero
+
+include::whatis.adoc[]
+
 == What you will learn
 
-This tutorial will give you an introduction to the Kabanero developer
-experience, guiding you along the creation and deployment of a cloud-native
+This tutorial will give you an introduction to the developer experience, guiding you along the creation and deployment of a cloud-native
 microservice.
 
 At the end of this tutorial, you should have a good understanding of the
-Kabanero developer experience through the use of the https://appsody.dev[Appsody]
+developer experience through the use of the https://appsody.dev[Appsody]
 command-line interface. 
 
 You’ll know how to create a new application and deploy it as 
-a microservice on Kubernetes, having an appreciation for how Kabanero 
-does all the heavy-lifting, helping you focus on the task of writing the code.
+a microservice on Kubernetes, having an appreciation for how the tooling 
+does the heavy-lifting, helping you focus on the task of writing the code.
 
 Note that the tutorial is based on a Node.js application using the 
-https://expressjs.com/[Express] framework, but Kabanero bundles support for other 
-programming languages and frameworks, and also supports the modular addition of
-support for other languages and frameworks through the creation of 
-https://appsody.dev/docs/stacks/stacks-overview[Appsody stacks].
+https://expressjs.com/[Express] framework,  but the applications stacks
+also include support for other programming languages and frameworks, and 
+the platform supports the modular addition of support for other languages 
+and frameworks through the creation of 
+https://appsody.dev/docs/stacks/stacks-overview[application stacks].
 
 include::appsody.adoc[]

@@ -48,12 +48,12 @@ You will need to enable Kubernetes as this is disabled by default in Docker Desk
 [.tab_content.mac_section]
 Open the "Preferences" dialog, switch to the "Kubernetes" tab, and select the "Enable Kubernetes" 
 option, as described in the 
-https://docs.docker.com/docker-for-mac/#kubernetes[Docker Destop for Mac] page.
+https://docs.docker.com/docker-for-mac/#kubernetes[Docker Desktop for Mac] page.
 
 [.tab_content.windows_section]
 Open the "Settings" dialog, switch to the "Kubernetes" tab, and select the "Enable Kubernetes" 
 option, as described in the 
-https://docs.docker.com/docker-for-windows/#kubernetes[Docker Destop for Windows] page.
+https://docs.docker.com/docker-for-windows/#kubernetes[Docker Desktop for Windows] page.
 
 
 ifdef::include-codewind[]
@@ -108,21 +108,4 @@ installed and running.
 [source, role='command']
 ```
 curl -sL https://github.com/gcharters/kabanero-dev-getting-started/releases/download/0.0.5/workshop-setup.sh | bash -s -- -p -l nodejs
-```
-
-
-=== Caching of large images
-
-This step will ensure your environment has all the prerequisites
-installed and running.
-
-In addition to checking prerequisites, this step will also cache large
-images into your local system. The cached content will save you valuable
-time throughout the course of this tutorial.
-
-(Windows users should execute it from a Cygwin shell) :
-
-[source, role='command']
-```
-curl -sL https://github.com/gcharters/kabanero-dev-getting-started/releases/download/0.0.5/workshop-setup.sh | bash -s -- -c -l nodejs
 ```

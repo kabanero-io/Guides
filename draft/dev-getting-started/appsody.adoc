@@ -27,31 +27,33 @@ Usage:
   appsody [command]
 
 Available Commands:
-  build       Locally build a docker image of your appsody project
-  completion  Generates bash tab completions
-  debug       Run the local Appsody environment in debug mode
-  deploy      Build and deploy your Appsody project to your Kubernetes cluster
-  extract     Extract the stack and your Appsody project to a local directory
+  build       Build a local container image of your Appsody project.
+  completion  Generate tab completions
+  debug       Debug your Appsody project.
+  deploy      Build and deploy your Appsody project to Kubernetes.
+  extract     Extract your Appsody project to a local directory.
   help        Help about any command
-  init        Initialize an Appsody project with a stack and template app
-  list        List the Appsody stacks available to init
+  init        Initialize an Appsody project.
+  list        List the available Appsody stacks.
   operator    Install or uninstall the Appsody operator from your Kubernetes cluster.
+  ps          List the Appsody containers running in the local Docker environment.
   repo        Manage your Appsody repositories
-  run         Run the local Appsody environment for your project
-  stop        Stops the local Appsody docker container for your project
-  test        Test your project in the local Appsody environment
-  version     Show Appsody CLI version
+  run         Run your Appsody project in a containerized development environment.
+  stack       Tools to help create and test Appsody stacks
+  stop        Stop the local, running Appsody container.
+  test        Test your project in the local Appsody environment.
+  version     Show the version of the Appsody CLI.
 
 Flags:
-      --config string   config file (default is $HOME/.appsody/.appsody.yaml)
-      --dryrun          Turns on dry run mode
+      --config string   The absolute path to the Appsody config file. Use this option when you want to specify your own, customized config file (default '$HOME/.appsody/.appsody.yaml')
+      --dryrun          Shows the commands that are called by this command, without running them.
   -h, --help            help for appsody
-  -v, --verbose         Turns on debug output and logging to a file in $HOME/.appsody/logs
+  -v, --verbose         Prints more detailed log output, to the console and to a file in $HOME/.appsody/logs
 
 Use "appsody [command] --help" for more information about a command.
 ----
 
-The Appsody CLI has a number of *Commands*. The majority of these
+The Appsody CLI has several *Commands*. The majority of these
 commands are for working with stacks: build, debug, run stop, test, and
 extract, list.
 
@@ -67,32 +69,37 @@ like:
 
 [source, role="no_copy"]
 ----
-REPO                	ID                       	VERSION  	TEMPLATES        	DESCRIPTION                                              
-...
-incubator           	java-microprofile        	0.2.21   	*default         	Eclipse MicroProfile on Open Liberty & OpenJ9 using Maven
-incubator           	java-spring-boot2        	0.3.19   	*default, kotlin 	Spring Boot using OpenJ9 and Maven                       
-incubator           	kitura                   	0.2.3    	*default         	Runtime for Kitura applications                          
-incubator           	nodejs                   	0.2.5    	*simple          	Runtime for Node.js applications                         
-incubator           	nodejs-express           	0.2.10   	scaffold, *simple	Express web framework for Node.js                        
-incubator           	nodejs-loopback          	0.1.8    	*scaffold        	LoopBack 4 API Framework for Node.js                     
-incubator           	python-flask             	0.1.6    	*simple          	Flask web Framework for Python                           
-incubator           	starter                  	0.1.1    	*simple          	Runnable starter stack, copy to create a new stack       
-incubator           	swift                    	0.2.3    	*simple          	Appsody runtime for Swift applications                   
+REPO        	ID                       	VERSION  	TEMPLATES        	DESCRIPTION                                              
+experimental	go-modules               	0.1.0    	*default         	Runtime for Go using Go 1.11+ modules for dependencies   
+experimental	java-spring-boot2-liberty	0.1.11   	*default         	Spring Boot on Open Liberty & OpenJ9 using Maven         
+experimental	nodejs-functions         	0.2.0    	*simple          	Serverless runtime for Node.js functions                 
+experimental	quarkus                  	0.2.3    	*default         	Quarkus runtime for running Java applications            
+experimental	rocket                   	0.1.0    	*simple          	Rocket web framework for Rust                            
+experimental	rust                     	0.1.6    	*simple          	Runtime for Rust applications                            
+experimental	vertx                    	0.1.4    	*default         	Eclipse Vert.x runtime for running Java applications     
+*incubator  	java-microprofile        	0.2.24   	*default         	Eclipse MicroProfile on Open Liberty & OpenJ9 using Maven
+*incubator  	java-openliberty         	0.2.3    	*default         	Open Liberty & OpenJ9 using Maven                        
+*incubator  	java-spring-boot2        	0.3.27   	*default, kotlin 	Spring Boot using OpenJ9 and Maven                       
+*incubator  	kitura                   	0.2.6    	*default         	Runtime for Kitura applications                          
+*incubator  	node-red                 	0.1.2    	*simple          	Node-RED runtime for running flows                       
+*incubator  	nodejs                   	0.3.5    	*simple          	Runtime for Node.js applications                         
+*incubator  	nodejs-express           	0.4.5    	scaffold, *simple	Express web framework for Node.js                        
+*incubator  	nodejs-loopback          	0.2.3    	*scaffold        	LoopBack 4 API Framework for Node.js                     
+*incubator  	python-flask             	0.2.2    	*simple          	Flask web Framework for Python                           
+*incubator  	starter                  	0.1.2    	*simple          	Runnable starter stack, copy to create a new stack       
+*incubator  	swift                    	0.2.5    	*simple          	Appsody runtime for Swift applications
 ----
 
-You’ll see that with the stacks available, we can develop new
-cloud-native applications using Java, Node.js or Swift, with a number of
-different, popular frameworks.
+You can see that the available stacks cover a large spectrum of programming languages and runtime frameworks.
 
 You can also register new repositories containing stacks created from
 the ground up or as clones of the default stacks shipped with Appsody.
 
-To illustrate that point, and to ensure this workshop will use the Kabanero
-collections, we will add that repository, using the following command:
+To illustrate that point, you can register the Kabanero stack hub entering the following command:
 
 [source, role='command']
 ```
-appsody repo add kabanero https://github.com/kabanero-io/collections/releases/latest/download/kabanero-index.yaml
+appsody repo add kabanero https://github.com/kabanero-io/kabanero-stack-hub/releases/latest/download/kabanero-stack-hub-index.yaml
 
 appsody repo list
 ```
@@ -101,13 +108,13 @@ You should see an output similar to this:
 
 [source, role="no_copy"]
 ----
-NAME        	URL                                                                                    
-*incubator  	https://github.com/appsody/stacks/releases/latest/download/incubator-index.yaml        
-experimental	https://github.com/appsody/stacks/releases/latest/download/experimental-index.yaml     
-kabanero    	https://github.com/kabanero-io/collections/releases/latest/download/kabanero-index.yaml
+NAME        	URL                                                                                                     
+*incubator  	https://github.com/appsody/stacks/releases/latest/download/incubator-index.yaml                         
+experimental	https://github.com/appsody/stacks/releases/latest/download/experimental-index.yaml                      
+kabanero    	https://github.com/kabanero-io/kabanero-stack-hub/releases/latest/download/kabanero-stack-hub-index.yaml
 ----
 
-`+Appsodyhub+` is the location where the appsody project releases its
+`+incubator+` is the location where the appsody project releases its
 stacks. The `+*+` indicates that this is the default repository. We can
 instruct appsody to set the new kabanero repository as the default repository:
 
@@ -117,57 +124,32 @@ appsody repo set-default kabanero
 
 appsody repo list
 
-NAME        	URL                                                                                    
-*kabanero   	https://github.com/kabanero-io/collections/releases/latest/download/kabanero-index.yaml
-experimental	https://github.com/appsody/stacks/releases/latest/download/experimental-index.yaml     
-incubator   	https://github.com/appsody/stacks/releases/latest/download/incubator-index.yaml        
+NAME        	URL                      
+*kabanero   	https://github.com/kabanero-io/kabanero-stack-hub/releases/latest/download/kabanero-stack-hub-index.yaml
+experimental	https://github.com/appsody/stacks/releases/latest/download/experimental-index.yaml
+incubator   	https://github.com/appsody/stacks/releases/latest/download/incubator-index.yaml
 ----
 
 
 
 === Creating a new Project with Appsody
 
-Make a directory to contain your project:
-
-[.tab_link.mac_link]
-`*MAC*`
-
-[.tab_link.windows_link]
-`*WINDOWS*`
-
-[.tab_content.mac_section]
---
-[source, role='command']
-```
-mkdir -p ~/workspace/kabanero-workshop/nodejs
-cd ~/workspace/kabanero-workshop/nodejs
-```
---
-
-[.tab_content.windows_section]
---
-[source, role='command']
-```
-mkdir %USERPROFILE%\workspace\kabanero-workshop\nodejs
-cd %USERPROFILE%\workspace\kabanero-workshop\nodejs
-```
---
-
-Create the new project. This project will be using the Node.js Express framework.
+Create a new directory to contain your project and initialize it with a Node.js Express application, entering the following commands on a terminal: 
 
 [source, role='command']
+```
+mkdir nodejs
+cd nodejs
+
 appsody init kabanero/nodejs-express
+```
 
-
-When the build completes, you should see something like:
+When the initialization completes, you should see something like:
 
 [source, role="no_copy"]
 ...
-Digest: sha256:58754b1c7b329dfef65dfcd39aa5e497a7d52ba8080ac493f64cd2bee4785bc2
-Status: Downloaded newer image for kabanero/nodejs-express:0.2
-docker.io/kabanero/nodejs-express:0.2
 [Warning] The stack image does not contain APPSODY_PROJECT_DIR. Using /project
-Running command: docker run --rm --entrypoint /bin/bash docker.io/kabanero/nodejs-express:0.2 -c find /project -type f -name .appsody-init.sh
+Running command: docker run --rm --entrypoint /bin/bash docker.io/kabanero/nodejs-express:0.2 -c "find /project -type f -name .appsody-init.sh"
 Successfully initialized Appsody project with the kabanero/nodejs-express stack and the default template.
 
 
@@ -181,20 +163,23 @@ endif::[]
 Special note for compiled languages, such as Java: To experience the incremental 
 update during development you will need an IDE that automatically compiles the source 
 files each time they are saved. For instance, Visual Studio Code with the Red Hat
-`+Language Support for Java+, Eclipse and IntelliJ IDEA are all known
+`+Language Support for Java+, Eclipse, and IntelliJ IDEA are all known
 to work.
 
-This project template was designed with simplicity in mind, containing only
-a skeleton Node.js application and Appsody control files:
+This project template was designed with simplicity in mind, containing only a skeleton Node.js application and Appsody control files:
 
 [source, role="no_copy"]
 ```
-./.appsody-config.yaml
-./.gitignore
-./app.js
-./package.json
-./package-lock.json
-./test/test.js
+├── .appsody-config.yaml
+├── .gitignore
+├── .vscode
+│   ├── launch.json
+│   └── tasks.json
+├── app.js
+├── package-lock.json
+├── package.json
+└── test
+    └── test.js
 ```
 
 
@@ -219,11 +204,11 @@ Running command: docker pull docker.io/kabanero/nodejs-express:0.2
 ...
 [Container] Running command:  npm start
 [Container] 
-[Container] > nodejs-express@0.2.8 start /project
+[Container] > nodejs-express@0.2.10 start /project
 [Container] > node server.js
 [Container] 
-[Container] [Mon Dec  9 14:55:23 2019] com.ibm.diagnostics.healthcenter.loader INFO: Node Application Metrics 5.1.1.201912041724 (Agent Core 4.0.5)
-[Container] [Mon Dec  9 14:55:24 2019] com.ibm.diagnostics.healthcenter.mqtt INFO: Connecting to broker localhost:1883
+[Container] [Fri Mar 20 21:01:20 2020] com.ibm.diagnostics.healthcenter.loader INFO: Node Application Metrics 5.1.1.202003102146 (Agent Core 4.0.5)
+[Container] [Fri Mar 20 21:01:21 2020] com.ibm.diagnostics.healthcenter.mqtt INFO: Connecting to broker localhost:1883
 [Container] App started on PORT 3000
 
 
@@ -260,14 +245,15 @@ and the application updated:
 
 [source, role="no_copy"]
 [Container] Running command:  npm start
-[Container] [Warning] Wait Received error starting process of type APPSODY_RUN/DEBUG/TEST_ON_CHANGE while running command: npm start error received was: signal: interrupt
+[Container] Wait received error on APPSODY_RUN/DEBUG/TEST signal: interrupt
 [Container] 
-[Container] > nodejs-express@0.2.8 start /project
+[Container] > nodejs-express@0.2.10 start /project
 [Container] > node server.js
 [Container] 
-[Container] [Mon Dec  9 14:56:43 2019] com.ibm.diagnostics.healthcenter.loader INFO: Node Application Metrics 5.1.1.201912041724 (Agent Core 4.0.5)
-[Container] [Mon Dec  9 14:56:43 2019] com.ibm.diagnostics.healthcenter.mqtt INFO: Connecting to broker localhost:1883
+[Container] [Fri Mar 20 21:02:46 2020] com.ibm.diagnostics.healthcenter.loader INFO: Node Application Metrics 5.1.1.202003102146 (Agent Core 4.0.5)
+[Container] [Fri Mar 20 21:02:46 2020] com.ibm.diagnostics.healthcenter.mqtt INFO: Connecting to broker localhost:1883
 [Container] App started on PORT 3000
+
 
 
 Now if you browse http://localhost:3000/resource, you should see the message 
@@ -293,7 +279,7 @@ to a Kubernetes cluster, which allows the developer to verify whether the applic
 will build and deploy correctly once it reaches a Tekton pipeline.
 
 If you interested in the Tekton pipelines after completing this tutorial, these
-are excellent tutorials covering the subject:
+are great tutorials covering the subject:
 
 - https://developer.ibm.com/tutorials/knative-build-app-development-with-tekton/[Deploy a Knative application using Tekton Pipelines]
 - https://developer.ibm.com/tutorials/make-continuous-delivery-easier-with-tekton-dashboards/[Continuous delivery with Tekton Dashboards example]
@@ -319,6 +305,24 @@ Attempting to get resource from Kubernetes ...
 Running command: kubectl get svc nodejs -o jsonpath=http://{.status.loadBalancer.ingress[0].hostname}:{.spec.ports[0].nodePort} --namespace default
 Deployed project running at http://localhost:30062
 
+
+It is possible you will hit https://github.com/appsody/appsody/issues/764[this issue in Appsody], which incorrectly indicates that the deployment failed:
+
+[source, role="no_copy"]
+Running command: kubectl get svc nodejs -o "jsonpath=http://{.status.loadBalancer.ingress[0].hostname}:{.spec.ports[0].nodePort}" --namespace default
+[Error] Failed to get deployment hostname and port: Failed to find deployed service IP and Port: kubectl get failed: exit status 1: Error from server (NotFound): services "nodejs" not found
+[Error] Failed to find deployed service IP and Port: Failed to find deployed service IP and Port: kubectl get failed: exit status 1: Error from server (NotFound): services "nodejs" not found
+
+If you hit that error, execute this command to get the port number:
+
+[source, role='command']
+----
+public_port=$(kubectl get service nodejs -o yaml  -o jsonpath='{.spec.ports[0].nodePort}')
+
+echo "http://localhost:${public_port}"
+----
+
+
 The very last line tells you where the application is available. Let’s
 call the resource by opening this endpoint in the browser:
 
@@ -337,20 +341,20 @@ You should see an output similar to this:
 [source, role="no_copy"]
 --
 NAME                                    READY   STATUS    RESTARTS   AGE
-pod/appsody-operator-57b94c7c48-62x49   1/1     Running   0          108s
-pod/nodejs-5d577bb68-79824              1/1     Running   0          98s
+pod/appsody-operator-5cccdc456b-hs2z9   1/1     Running   0          9m17s
+pod/nodejs-7cfd9f478c-sb7x6             1/1     Running   0          9m8s
 
 NAME                 TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)          AGE
-service/kubernetes   ClusterIP   10.96.0.1       <none>        443/TCP          5d2h
-service/nodejs       NodePort    10.106.230.65   <none>        3000:31434/TCP   98s
+service/kubernetes   ClusterIP   10.96.0.1       <none>        443/TCP          8d
+service/nodejs       NodePort    10.111.237.25   <none>        3000:32632/TCP   9m8s
 
 NAME                               READY   UP-TO-DATE   AVAILABLE   AGE
-deployment.apps/appsody-operator   1/1     1            1           108s
-deployment.apps/nodejs             1/1     1            1           98s
+deployment.apps/appsody-operator   1/1     1            1           9m17s
+deployment.apps/nodejs             1/1     1            1           9m8s
 
 NAME                                          DESIRED   CURRENT   READY   AGE
-replicaset.apps/appsody-operator-57b94c7c48   1         1         1       108s
-replicaset.apps/nodejs-5d577bb68              1         1         1       98s
+replicaset.apps/appsody-operator-5cccdc456b   1         1         1       9m17s
+replicaset.apps/nodejs-7cfd9f478c             1         1         1       9m8s
 --
 
 The entries with `+nodejs+` correspond to Kubernetes resources
@@ -359,7 +363,7 @@ created to support your application. The
 deployment.
 
 It is worth noting at this point that this deployment was achieved
-without the need for writing, or even understanding, a Dockerfile or 
+without the need for writing or even understanding a Dockerfile or 
 Kubernetes deployment file.
 
 Now we can list the files in the project directory, which should contain
@@ -367,11 +371,12 @@ files like this:
 
 [source, role="no_copy"]
 ....
--rw-r--r--  1 myuser  staff    628 Oct  8 14:05 app-deploy.yaml
--rw-r--r--  1 myuser  staff    130 Oct  8 14:02 app.js
--rw-r--r--  1 myuser  staff  51421 Oct  8 14:02 package-lock.json
--rw-r--r--  1 myuser  staff    455 Oct  8 14:02 package.json
-drwxr-xr-x  3 myuser  staff     96 Oct  8 14:02 test
+-rw-rw-r--  1 nastacio  staff   4008 Mar 20 17:04 app-deploy.yaml
+-rw-r--r--  1 nastacio  staff    209 Mar 20 17:02 app.js
+drwxr-xr-x  2 nastacio  staff     64 Mar 20 17:01 node_modules
+-rw-r--r--  1 nastacio  staff  51421 Mar 20 16:57 package-lock.json
+-rw-r--r--  1 nastacio  staff    455 Mar 20 16:57 package.json
+drwxr-xr-x  3 nastacio  staff     96 Mar 20 16:57 test
 ....
 
 The `+app-deploy.yaml+` is generated from the stack and used to deploy
@@ -432,16 +437,16 @@ You should see output similar to this:
 [source, role="no_copy"]
 ....
 NAME                                    READY   STATUS    RESTARTS   AGE
-pod/appsody-operator-57b94c7c48-62x49   1/1     Running   0          3m31s
+pod/appsody-operator-5cccdc456b-hs2z9   1/1     Running   0          11m
 
 NAME                 TYPE        CLUSTER-IP   EXTERNAL-IP   PORT(S)   AGE
-service/kubernetes   ClusterIP   10.96.0.1    <none>        443/TCP   5d3h
+service/kubernetes   ClusterIP   10.96.0.1    <none>        443/TCP   8d
 
 NAME                               READY   UP-TO-DATE   AVAILABLE   AGE
-deployment.apps/appsody-operator   1/1     1            1           3m31s
+deployment.apps/appsody-operator   1/1     1            1           11m
 
 NAME                                          DESIRED   CURRENT   READY   AGE
-replicaset.apps/appsody-operator-57b94c7c48   1         1         1       3m31s
+replicaset.apps/appsody-operator-5cccdc456b   1         1         1       11m
 ....
 
 What if you decide you want to see the Container and Kubernetes
@@ -461,67 +466,41 @@ Extracting project from development environment
 Pulling docker image docker.io/kabanero/nodejs-express:0.2
 Running command: docker pull docker.io/kabanero/nodejs-express:0.2
 0.2: Pulling from kabanero/nodejs-express
-Digest: sha256:58754b1c7b329dfef65dfcd39aa5e497a7d52ba8080ac493f64cd2bee4785bc2
+Digest: sha256:e146ec0b008cd122f3c87b50e2d69102141f71dfd44239d1dbaeac97d06737a0
 Status: Image is up to date for kabanero/nodejs-express:0.2
 docker.io/kabanero/nodejs-express:0.2
 [Warning] The stack image does not contain APPSODY_PROJECT_DIR. Using /project
-Running command: docker create --name nodejs-extract -v /Users/myuser/workspace/kabanero-workshop/nodejs/:/project/user-app index.docker.io/kabanero/nodejs-express:0.2
-Running command: docker cp nodejs-extract:/project /Users/myuser/.appsody/extract/nodejs
+Running command: docker create --name nodejs-extract -v /Users/nastacio/workspace/kabanero-workshop/nodejs/:/project/user-app docker.io/kabanero/nodejs-express:0.2
+Running command: docker cp nodejs-extract:/project /Users/nastacio/.appsody/extract/nodejs
+Project extracted to /Users/nastacio/workspace/kabanero-workshop/nodejs/tmp-extract
 Running command: docker rm nodejs-extract -f
-Project extracted to /Users/myuser/workspace/kabanero-workshop/nodejs/tmp-extract
 ....
 
-Let’s take a look at the extracted project:
-
-[.tab_link.mac_link]
-`*MAC*`
-
-[.tab_link.windows_link]
-`*WINDOWS*`
-
-[.tab_content.mac_section]
---
-[source, role='command']
-```
-cd ~/workspace/kabanero-workshop/nodejs/tmp-extract
-ls -al
-```
---
-
-[.tab_content.windows_section]
---
-[source, role='command']
-```
-cd %USERPROFILE%\workspace\kabanero-workshop\nodejs\tmp-extract
-dir
-```
---
-
-You should see output similar to the following:
+Take a look at the extracted project switching to that `tmp-extract` directory. It should contain files similar to the ones in the listing below:
 
 [source, role="no_copy"]
 ....
-drwxr-xr-x   10 myuser  staff     320 Dec  4 12:25 .
-drwxr-xr-x   12 myuser  staff     384 Dec  9 10:06 ..
--rw-rw-r--    1 myuser  staff      48 Dec  4 12:20 .dockerignore
--rw-rw-r--    1 myuser  staff     883 Dec  4 12:20 Dockerfile
-drwxr-xr-x  297 myuser  staff    9504 Dec  4 12:25 node_modules
--rw-r--r--    1 myuser  staff  102367 Dec  4 12:25 package-lock.json
--rw-rw-r--    1 myuser  staff     659 Dec  4 12:20 package.json
--rw-rw-r--    1 myuser  staff    1462 Dec  4 12:20 server.js
-drwxrwxr-x    3 myuser  staff      96 Dec  4 12:20 test
-drwxr-xr-x   11 myuser  staff     352 Dec  9 09:59 user-app
+drwxr-xr-x   10 nastacio  staff     320 Mar 10 17:46 .
+drwxr-xr-x   12 nastacio  staff     384 Mar 20 17:16 ..
+-rw-rw-r--    1 nastacio  staff      48 Mar 10 17:45 .dockerignore
+-rw-rw-r--    1 nastacio  staff    1075 Mar 10 17:45 Dockerfile
+drwxr-xr-x  298 nastacio  staff    9536 Mar 10 17:46 node_modules
+-rw-r--r--    1 nastacio  staff  102510 Mar 10 17:46 package-lock.json
+-rw-rw-r--    1 nastacio  staff     660 Mar 10 17:45 package.json
+-rw-rw-r--    1 nastacio  staff    1462 Mar 10 17:45 server.js
+drwxrwxr-x    3 nastacio  staff      96 Mar 10 17:45 test
+drwxr-xr-x   11 nastacio  staff     352 Mar 20 17:04 user-app
 ....
 
 
 These are the files for the project, including those provided by the
-stack. For example, the `+package.json+` has the core application definition 
+stack. For example, the `+package.json+` has the package dependencies
 for your application, and the `+Dockerfile+` is the one used to build and package
 the application. The `+user-app+` directory contains the Node.js project for your
 application.
 
 ifdef::include-codewind[]
-That’s it for the Appsody part of the tutoral.
+That’s it for the Appsody part of the tutorial.
 endif::[]
 
 You have seen how Appsody

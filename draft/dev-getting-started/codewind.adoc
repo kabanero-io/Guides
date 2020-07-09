@@ -9,7 +9,7 @@ It is worth looking at the Codewind configuration to understand how to
 eventually include references to custom stacks, such as the one we will 
 be building in this workshop.
 
-In order to include additional stacks to the list of stacks available
+To include additional stacks to the list of stacks available
 inside Codewind, you can add them through the template sources panel.
 Right-click the Projects icon in the Codewind section of the Visual Code
 Studio Explorer and select "Manage Template Sources":
@@ -73,12 +73,12 @@ And the state for the project should change to `+Running+`:
 image::/img/guide/kab-workshop-codewind-nodejs-running.png[link="/img/guide/kab-workshop-codewind-nodejs-running.png" alt="Node.js Express project running"]
 
 The generated project contains all the boiler-plate code to get started
-with developing a Node.js Express application. This is the exact same
+with developing a Node.js Express application. This is the same
 code we saw generated for the new Appsody project.
 
-To access the application endpoint in a browser, select the *Open App*
+To access the application endpoint in a browser, select the *Open Application*
 icon next to the project’s name, or right-click on the project and
-select the `+Open App+` menu option. This opens up the application in
+select the `+Open Application+` menu option. This opens up the application in
 the running container showing a welcome page for the project.
 
 .Launch Node.js Express application
@@ -86,7 +86,7 @@ image::/img/guide/kab-workshop-codewind-launch-nodejs.png[link="/img/guide/kab-w
 
 Let’s take a look at the code. In the *Visual Studio Code Explorer* you should see
 an entry with your Codewind project name. If you don’t find
-it, right-click on the project and choose `+Add Folder to Workspace+`.
+it, right-click on the project and choose `+Add Project to Workspace+`.
 In the workspace view, expand the project and the sub-folders to show
 all the files created from the Appsody template (Note, the template is
 not intended to be a sample as most people would end up having to delete
@@ -146,7 +146,7 @@ Resource from Appsody!
 
 === Looking Inside the Container
 
-During development you may need to look inside the container to see
+During development, you may need to look inside the container to see
 what’s deployed and configured. Codwind makes this easy. Select the
 `+Open Container Shell+` option:
 
@@ -164,8 +164,8 @@ and its dependencies.
 
 === Viewing Application Metrics
 
-Let’s take a look at the application metrics built in to Codewind.
-Right-click on the application and select `+Open Application Monitor+`:
+Let’s take a look at the application metrics built into Codewind.
+Right-click on the application and select `+Metrics Dashboard+`:
 
 This should open a page in your browser showing the metrics
 dashboard with various system resource and response time data.
@@ -183,16 +183,25 @@ service. Keep the dashboard open for now.
 
 Let’s now take a look at the load testing support of Codewind.
 Right-click on the application and select
-`+Open Performance Dashboard+`:
+`+Performance Dashboard+`:
 
-In a browser tab you should see the Codewind performance dashboard.
-Click on `+Edit load run settings+` and change the path to point to the
-REST service endpoint `+/resource+` and click `+Save+` to save
-the settings. Click `+Run Load Test+`, in the dialog, give the test a
-name `+Test 1+` and choose `+Run+`:
+In a browser tab, you should see the Codewind performance dashboard.
+Click on `+Edit load run settings+`, and then change the values to the
+following settings:
 
 .Edit load run settings
-image::/img/guide/kab-workshop-codewind-edit-load-test.png[link="/img/guide/kab-workshop-codewind-edit-load-test.png" alt="Edit load run settings"]
+[width="80%",cols="3,^4",options="header"]
+|==========
+| Method | GET 
+| Path | /resource
+| Requests/second | 100
+| Concurrent | 20
+| Duration | 20
+| JSON body| < leave empty >
+|==========
+
+
+Click `+Save+` to save the settings. Click `+Run Load Test+`, in the dialog, give the test a name `+Test 1+` and choose `+Run+`:
 
 When the tests are complete you should see results similar to the
 following (you may need to click refresh in the browser). Click the
